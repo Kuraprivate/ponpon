@@ -5,6 +5,12 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
 <meta name="theme-color" content="#fff7e6">
 <title>ぽんぽんモンスター</title>
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icons/favicon-64.png">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="ぽんぽん">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=M+PLUS+Rounded+1c:wght@500;800;900&display=swap" rel="stylesheet">
 <style>
@@ -91,6 +97,7 @@
     <button id="btn-play" class="big-btn">遊ぶ<small id="play-sub">レベル 1</small></button>
     <div class="home-stats">集めた星 <b>★ <span id="home-stars">0</span></b></div>
     <button id="btn-how" class="sub-btn">遊び方・練習</button>
+    <button id="btn-a2hs" class="sub-btn hidden">📱 ホーム画面に追加</button>
   </section>
 
   <!-- ゲーム -->
@@ -957,6 +964,35 @@ document.getElementById("btn-menu").addEventListener("click", () => { if (G.stat
 document.getElementById("r-next").addEventListener("click", () => { document.getElementById("result").classList.add("hidden"); startLevel(); });
 document.getElementById("r-home").addEventListener("click", () => { document.getElementById("result").classList.add("hidden"); showScreen("home"); });
 window.addEventListener("resize", () => { if (!document.getElementById("game").classList.contains("hidden")) layout(); });
+// ================= ホーム画面に追加（アプリのように開く） =================
+let a2hsEvt = null, pwaOk = false;
+const standalone = () => matchMedia("(display-mode: standalone)").matches || matchMedia("(display-mode: fullscreen)").matches || navigator.standalone === true;
+const isIOS = () => /iPhone|iPad|iPod/.test(navigator.userAgent) || (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
+function a2hsShow() { document.getElementById("btn-a2hs").classList.toggle("hidden", !(pwaOk && !standalone())); }
+window.addEventListener("beforeinstallprompt", e => { e.preventDefault(); a2hsEvt = e; a2hsShow(); });
+window.addEventListener("appinstalled", () => { pwaOk = false; a2hsShow(); });
+document.getElementById("btn-a2hs").addEventListener("click", () => {
+  if (a2hsEvt) { a2hsEvt.prompt(); a2hsEvt = null; return; }
+  if (isIOS()) openNote("ホーム画面に追加", [
+    ["1", "<b>Safari</b> でこのページを開きます（LINE などの中の画面ではできません）"],
+    ["2", "画面の下（iPad は上）の <b>共有ボタン</b>（四角から矢印が出ているマーク）を押します"],
+    ["3", "<b>「ホーム画面に追加」</b>を選び、右上の<b>「追加」</b>を押します"],
+    ["★", "ホーム画面のアイコンからすぐ遊べます。※ホーム画面から開くと、記録は最初からになります"]
+  ]);
+  else openNote("ホーム画面に追加", [
+    ["1", "<b>Chrome</b> でこのページを開きます"],
+    ["2", "右上の <b>︙（点が3つ）</b> を押します"],
+    ["3", "<b>「ホーム画面に追加」</b>または<b>「アプリをインストール」</b>を選びます"],
+    ["★", "ホーム画面のアイコンからすぐ遊べます"]
+  ]);
+});
+if (/^https?:/.test(location.protocol)) {
+  fetch("manifest.webmanifest", { cache: "no-store" }).then(r => {
+    if (!r.ok) return;
+    pwaOk = true; a2hsShow();
+    if ("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js").catch(() => { });
+  }).catch(() => { });
+}
 applyFont();
 refreshHome();
 requestAnimationFrame(frame);
